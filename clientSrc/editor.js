@@ -30,24 +30,24 @@ var loadAllLines = function () {
     corpus.findAllLines().forEach(function (id) {
         ids.push(id);
         var line = corpus.findLine(id);
-        var lambda = syntax.compiler.loadLine(line);
-        trees[id] = syntax.tree.load(lambda);
+        var churchTerm = syntax.compiler.loadLine(line);
+        trees[id] = syntax.tree.load(churchTerm);
         validities[id] = _.clone(UNKNOWN);
     });
     pollValidities();
     assert(ids.length > 0, 'corpus is empty');
 };
 
-var replaceBelow = function (newLambda, subsForDash) {
+var replaceBelow = function (newChurchTerm, subsForDash) {
     if (subsForDash !== undefined) {
-        newLambda = syntax.compiler.substitute(
+        newChurchTerm = syntax.compiler.substitute(
             '&mdash;',
-            subsForDash, newLambda);
+            subsForDash, newChurchTerm);
     }
     //log('replacing ' + syntax.compiler.print(cursor.below[0]) +
-    //    'with: ' + syntax.compiler.print(newLambda));
-    var newTerm = syntax.tree.load(newLambda);
-    cursor = syntax.cursor.replaceBelow(cursor, newTerm);
+    //    'with: ' + syntax.compiler.print(newChurchTerm));
+    var newNode = syntax.tree.load(newChurchTerm);
+    cursor = syntax.cursor.replaceBelow(cursor, newNode);
     lineChanged = true;
     view.update(ids[cursorPos]);
 };
@@ -55,8 +55,8 @@ var replaceBelow = function (newLambda, subsForDash) {
 var insertAssert = function (done, fail) {
     var HOLE = syntax.compiler.symbols.HOLE;
     var ASSERT = syntax.compiler.symbols.ASSERT;
-    var lambda = ASSERT(HOLE);
-    var line = syntax.compiler.dumpLine(lambda);
+    var churchTerm = ASSERT(HOLE);
+    var line = syntax.compiler.dumpLine(churchTerm);
     insertLine(line, done, fail);
 };
 
@@ -64,8 +64,8 @@ var insertDefine = function (varName, done, fail) {
     var VAR = syntax.compiler.symbols.VAR;
     var HOLE = syntax.compiler.symbols.HOLE;
     var DEFINE = syntax.compiler.symbols.DEFINE;
-    var lambda = DEFINE(VAR(varName), HOLE);
-    var line = syntax.compiler.dumpLine(lambda);
+    var churchTerm = DEFINE(VAR(varName), HOLE);
+    var line = syntax.compiler.dumpLine(churchTerm);
     insertLine(line, done, fail);
 };
 
@@ -78,8 +78,8 @@ var insertLine = function (line, done, fail) {
             cursorPos += 1;
             var id = line.id;
             ids = ids.slice(0, cursorPos).concat([id], ids.slice(cursorPos));
-            var lambda = syntax.compiler.loadLine(line);
-            var root = syntax.tree.load(lambda);
+            var churchTerm = syntax.compiler.loadLine(line);
+            var root = syntax.tree.load(churchTerm);
             syntax.cursor.insertAbove(cursor, _.last(root.below));  // HACK
             trees[id] = root;
             validities[id] = _.clone(UNKNOWN);
@@ -121,12 +121,12 @@ var commitLine = function () {
     var below = cursor.below[0];
     syntax.cursor.remove(cursor);
     var root = syntax.tree.getRoot(below);
-    var lambda = syntax.tree.dump(root);
-    var line = syntax.compiler.dumpLine(lambda);
+    var churchTerm = syntax.tree.dump(root);
+    var line = syntax.compiler.dumpLine(churchTerm);
     line.id = id;
     line = corpus.update(line);
-    lambda = syntax.compiler.loadLine(line);
-    root = syntax.tree.load(lambda);
+    churchTerm = syntax.compiler.loadLine(line);
+    root = syntax.tree.load(churchTerm);
     syntax.cursor.insertAbove(cursor, root);
     trees[id] = root;
     var lineIsDefinition = (line.name !== null);
@@ -145,8 +145,8 @@ var commitLine = function () {
 var revertLine = function () {
     var id = ids[cursorPos];
     var line = corpus.findLine(id);
-    var lambda = syntax.compiler.loadLine(line);
-    var root = syntax.tree.load(lambda);
+    var churchTerm = syntax.compiler.loadLine(line);
+    var root = syntax.tree.load(churchTerm);
     syntax.cursor.remove(cursor);
     syntax.cursor.insertAbove(cursor, root);
     trees[id] = root;
