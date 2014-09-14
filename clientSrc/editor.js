@@ -9,6 +9,7 @@ var view = require('./view');
 var menu = require('./menu');
 var corpus = require('./corpus');
 var log = require('./log');
+var TODO = require('./TODO');
 
 var ids = [];
 var trees = {};  // id -> tree
@@ -69,6 +70,7 @@ var insertDefine = function (varName, done, fail) {
     insertLine(line, done, fail);
 };
 
+// outgoing create
 var insertLine = function (line, done, fail) {
     corpus.insert(
         line,
@@ -99,6 +101,20 @@ var insertLine = function (line, done, fail) {
     );
 };
 
+// incoming create
+var onInsertLine = function (line) {
+    var id = line.id;
+    ids.push(id);
+    var churchTerm = syntax.compiler.loadLine(line);
+    var root = syntax.tree.load(churchTerm);
+    trees[id] = root;
+    validities[id] = _.clone(UNKNOWN);
+    pollValidities();
+    view.insertAfter(ids[ids.length - 2], id);
+    scrollToCursor();
+};
+
+// outgoing remove
 var removeLine = function () {
     var id = ids[cursorPos];
     corpus.remove(id);
@@ -116,6 +132,22 @@ var removeLine = function () {
     scrollToCursor();
 };
 
+// incoming remove
+var onRemoveLine = function (id) {
+    var pos = _.indexOf(ids, id);
+    if (pos === cursorPos) {
+        TODO('implement locking to avoid this situation');
+    } else if (pos < cursorPos) {
+        cursorPos -= 1;
+    }
+    ids = ids.slice(0, pos).concat(ids.slice(pos + 1));
+    delete trees[id];
+    delete validities[id];
+    view.remove(id);
+    scrollToCursor();
+};
+
+// outgoing update
 var commitLine = function () {
     var id = ids[cursorPos];
     var below = cursor.below[0];
@@ -140,6 +172,23 @@ var commitLine = function () {
     pollValidities();
     view.update(id);
     lineChanged = false;
+};
+
+// outgoing update
+var onUpdateLine = function (line) {
+    var id = line.id;
+    var pos = _.indexOf(ids, id);
+    if (pos === cursorPos) {
+        TODO('implement locking to avoid this situation');
+    } else if (pos < cursorPos) {
+        cursorPos -= 1;
+    }
+    var churchTerm = syntax.compiler.loadLine(line);
+    var root = syntax.tree.load(churchTerm);
+    trees[id] = root;
+    validities[id] = _.clone(UNKNOWN);
+    pollValidities();
+    view.update(id);
 };
 
 var revertLine = function () {
@@ -303,5 +352,10 @@ module.exports = {
                 return cursor;
             }
         });
+    },
+    crud: {
+        create: onInsertLine,
+        remove: onRemoveLine,
+        update: onUpdateLine
     }
 };
